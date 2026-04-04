@@ -23,7 +23,9 @@ public class ZipcodeReference {
     private String scope;
     private String zipcode;
 
+    private String department;
+
     private String scopeType; // "SINGLE" (單), "DOUBLE" (雙), "ALL" (連、全)
-    private Integer minNum;
-    private Integer maxNum;
+    private Long minNum;
+    private Long maxNum;
 }

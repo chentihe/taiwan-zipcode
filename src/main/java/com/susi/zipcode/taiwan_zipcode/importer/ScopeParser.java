@@ -6,40 +6,70 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ScopeParser {
-    private static final Pattern SCOPE_PATTERN =
-            Pattern.compile("(單|雙|連)\\\\s*(\\\\d+)?\\\\s*(以上|以下|至)?\\\\s*(\\\\d+)?");
+    private static final Pattern UNIT_PATTERN =
+            Pattern.compile("(\\d+)(巷|弄|號)");
 
     public static void parseAndSet(String scope, ZipcodeReference entity) {
-        if (scope == null || scope.isEmpty() || scope.contains("全")) {
-            entity.setScope("ALL");
-            entity.setMinNum(0);
-            entity.setMaxNum(99999);
+        if (scope == null || scope.equals("全")) {
+            entity.setScopeType("ALL");
+            entity.setMaxNum(0L);
+            entity.setMaxNum(Long.MAX_VALUE);
         }
 
-        Matcher matcher = SCOPE_PATTERN.matcher(scope);
-        if (matcher.find()) {
-            // 1. identify SINGLE / DOUBLE
-            String type = matcher.group(1);
-            entity.setScopeType(type.equals("單") ? "SINGLE" : type.equals("雙") ? "DOUBLE" : "ALL");
+        if (scope.contains("單")) {
+            entity.setScopeType("SINGLE");
+        } else if (scope.contains("雙")) {
+            entity.setScopeType("DOUBLE");
+        } else {
+            entity.setScopeType("ALL");
+        }
 
-            // 2. identify interval
-            int num1 = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : 0;
-            String relation = matcher.group(3);
-            int num2 = matcher.group(4) != null ? Integer.parseInt(matcher.group(4)) : 0;
+        if (scope.contains("以下")) {
+            entity.setMinNum(0L);
+            entity.setMaxNum(parseToWeight(scope));
+        } else if (scope.contains("以上")) {
+            entity.setMinNum(parseToWeight(scope));
+            entity.setMaxNum(Long.MAX_VALUE);
+        } else if (scope.contains("至")) {
+            String[] parts = scope.split("至");
+            entity.setMinNum(parseToWeight(parts[0]));
+            entity.setMaxNum(parseToWeight(parts[1]));
+        } else {
+            long weight = parseToWeight(scope);
+            entity.setMinNum(weight);
+            entity.setMaxNum(weight);
+        }
+    }
 
-            if ("以上".equals(relation)) {
-                entity.setMinNum(num1);
-                entity.setMaxNum(99999);
-            } else if ("以下".equals(relation)) {
-                entity.setMinNum(0);
-                entity.setMaxNum(num1);
-            } else if ("至".equals(relation)) {
-                entity.setMinNum(num1);
-                entity.setMaxNum(num2);
-            } else {
-                entity.setMinNum(num1);
-                entity.setMaxNum(num1);
+    public static long parseToWeight(String scope) {
+        if (scope == null || scope.isEmpty()) return 0L;
+
+        long primary = 0;
+        long secondary = 0;
+        long tertiary = 0;
+
+        Matcher matcher = UNIT_PATTERN.matcher(scope);
+        while (matcher.find()) {
+            int num = Integer.parseInt(matcher.group(1));
+            String unit = matcher.group(2);
+
+            switch (unit) {
+                case "巷":
+                    primary = num;
+                    break;
+                case "弄":
+                    secondary = num;
+                    break;
+                case "號":
+                    if (primary == 0) {
+                        primary = num;
+                    } else {
+                        tertiary = num;
+                    }
+                    break;
             }
         }
+
+        return (primary * 1_000_000L) + (secondary * 1_000L) + tertiary;
     }
 }

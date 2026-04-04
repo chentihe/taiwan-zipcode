@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.susi.zipcode.taiwan_zipcode.entity.ZipcodeReference;
 import com.susi.zipcode.taiwan_zipcode.repository.ZipcodeRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -12,16 +13,11 @@ import java.io.InputStream;
 import java.util.ArrayList;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class JsonImporter {
-    private ZipcodeRepository repository;
-
-    private ObjectMapper objectMapper;
-
-    public JsonImporter(ObjectMapper objectMapper, ZipcodeRepository repository) {
-        this.objectMapper = objectMapper;
-        this. repository = repository;
-    }
+    private final ZipcodeRepository repository;
+    private final ObjectMapper objectMapper;
 
     public void importJson(InputStream inputStream) throws IOException {
         JsonNode root = objectMapper.readTree(inputStream);
@@ -48,6 +44,10 @@ public class JsonImporter {
                         ref.setRoad(roadName);
                         ref.setScope(scopeName);
                         ref.setZipcode(scopeNode.get("zipcode").asText());
+
+                        if (scopeNode.has("department")) {
+                            ref.setDepartment(scopeNode.get("department").asText());
+                        }
 
                         ScopeParser.parseAndSet(scopeName, ref);
 
