@@ -27,12 +27,15 @@ public interface ZipcodeRepository extends JpaRepository<ZipcodeReference, Long>
     List<ZipcodeReference> findByCityAndAreaAndRoad(String city, String area, String road);
 
     @Query("SELECT z FROM ZipcodeReference z " +
-    "WHERE z.city = :city " +
-    "AND z.area = :area " +
-    "AND z.road = :road " +
-    "AND :weight BETWEEN z.minNum AND z.maxNum " +
-    "AND (z.scopeType = 'ALL' OR z.scopeType = :scopeType) " +
-    "ORDER BY (z.maxNum - z.minNum) ASC")
+            "WHERE z.city = :city " +
+            "AND z.area = :area " +
+            "AND z.road = :road " +
+            "AND (" +
+            "  (z.scopeType = 'ALL') " +
+            "  OR (:weight BETWEEN z.minNum AND z.maxNum AND z.scopeType = :scopeType)" +
+            ") " +
+            "ORDER BY (CASE WHEN z.scopeType = 'ALL' THEN 1 ELSE 0 END) ASC, " +
+            "(z.maxNum - z.minNum) ASC")
     List<ZipcodeReference> findMatchingZipcodes(
             String city,
             String area,
